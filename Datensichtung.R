@@ -11,3 +11,4 @@ str(crimes2016)
 
 hist(crimes2016$AREA)
 hist(crimes2016$Crm.Cd)
+
