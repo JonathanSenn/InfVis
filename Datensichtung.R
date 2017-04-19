@@ -1,8 +1,9 @@
 
-
+library('ggmap')
 library('leaflet')
-install.packages('ggplot2')
 library('ggplot2')
+library(stringr)
+rm(list = ls())
 
 dataFolder <- "data"
 
@@ -17,13 +18,86 @@ hist(crimes2016$AREA)
 hist(crimes2016$Crm.Cd)
 crimes2016$Location.1
 
-leaf_map <- leaflet() %>% addTiles()
-?leaflet
-leaf_map
 
 
 test <- (gsub("\\(|\\)", "", crimes2016$Location.1))
-crimes2016$latlong <- strsplit(test, "")
-leaf_map %>% addCircleMarkers(~crimes2016, ~latlong, radius = 5,
-                              color = ~greens(value), fillOpacity = 0.5)
+crimes2016$lat <- as.double((str_split_fixed(test, ",", 2))[,1])
+crimes2016$lng <- as.double((str_split_fixed(test, ",", 2))[,2])
+?strsplit
+
+
+summary(crimes2016$lat)
+summary(crimes2016$lng)
+
+summary(crimes2016$DATE.OCC)
+
+hist(crimes2016$TIME.OCC, breaks = 24)
+hist(crimes2016$Crm.Cd, breaks = 1000)
+hist(crimes2016$lat)
+
+crimes2016.small <- crimes2016[1:10000,]
+crimes2016.small <- subset(crimes2016.small, lng != 0)
+crimes2016.small$cat <- ceiling(crimes2016.small$Crm.Cd/100)
+
+crimes2016.small$cat
+?apply
+
+#Rasterkarte als Hintergrund
+LA <- get_map(location = c(-118.3, 34.06), zoom = 10, source = 'google', color = 'bw')
+map <- ggmap(LA)
+
+#Vektorkarte als Hintergrund
+USA.vec <- map_data("county")
+LA.vec <- subset(USA.vec, subregion == 'los angeles')
+map <- ggplot(data = LA.vec, aes(long, lat)) + geom_polygon(fill = 'light gray', color = 'black')
+
+?map_data
+
+map <- map + 
+  stat_density2d(data = crimes2016.small, aes(lng, lat, fill = ..level..), geom = 'polygon', alpha = 1) + 
+  scale_fill_gradient(low="lightpink", high="red") +
+  geom_point(data = crimes2016.small, aes(lng, lat, colour=Crm.Cd), size = 1, alpha = 0.1) +
+  scale_color_continuous(low = "blue", high = "yellow")
+
+#Dichtekarte mit Flächen
+map <- map + 
+  stat_density2d(data = crimes2016.small, aes(lng, lat, fill = ..level..), alpha = 0.1, bins = 50, geom = 'polygon', contour = TRUE) +
+  scale_fill_gradient(low = 'lightpink', high = 'red')
+
+map
+#Small Multiples nach Kategorie cat
+map <- map + 
+  stat_density2d(data = crimes2016.small, aes(lng, lat, fill = ..level..), alpha = 0.1, bins = 50, geom = 'polygon', contour = TRUE) +
+  scale_fill_gradient(low = 'lightpink', high = 'red') + facet_wrap(~cat, nrow = 3, ncol = 3)
+
+
+#Dichtekarte mit Iso-Lininen
+map <- map + geom_density2d(data = crimes2016.small, aes(lng, lat, color = ..level..), bins = 30) +
+  scale_color_gradient(low = 'pink', high = 'red'); map
+
+
+?scale_fill_gradient2
+
+map <- map + geom_point(data = crimes2016.small, aes(lng, lat, colour=Crm.Cd), size = 1, alpha = 1) 
+
+map
+
+ggsave("plot.png", width = 20, height = 20)
+map <- map + geom_point(data = crimes2016.small, aes(lng, lat, colour=Crm.Cd) , size = 3, alpha = 0.005, stroke = 0)
+
+crimes2016$Crm.Cd.Desc
+levels(crimes2016.small$Crm.Cd)
+?levels
+
+new <- crimes2016.small
+look <- data.frame(old = c(210, 310, 510), new = c(2,3,5))
+
+codes <- crimes2016[!duplicated(crimes2016$Crm.Cd),]
+codes <- data.frame(codes$Crm.Cd, codes$Crm.Cd.Desc)
+
+
+write.csv(codes, "codes.csv")
+
+new$catnew <- replace(new$Crm.Cd, new$Crm.Cd %in% c(210,310,510,710), 10)
+new
 
