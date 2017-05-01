@@ -1,4 +1,4 @@
-install.packages('zoo')
+
 
 library('ggmap')
 library('leaflet')
@@ -49,7 +49,6 @@ crimes2016.small <- crimes2016[1:10000,]
 crimes2016.small <- subset(crimes2016.small, lng != 0)
 crimes2016$cat <- ceiling(crimes2016$Crm.Cd/100)
 
-crimes2016.small$cat
 
 
 #Rasterkarte als Hintergrund
@@ -60,7 +59,7 @@ map <- ggmap(LA)
 USA.vec <- map_data("county")
 LA.vec <- subset(USA.vec, subregion == 'los angeles')
 map <- ggplot(data = LA.vec, aes(long, lat)) + geom_polygon(fill = 'light gray', color = 'black')
-
+crimes2016.joined$lng
 ?map_data
 
 map <- map + 
@@ -68,6 +67,8 @@ map <- map +
   scale_fill_gradient(low="lightpink", high="red") +
   geom_point(data = crimes2016.small, aes(lng, lat, colour=Crm.Cd), size = 1, alpha = 0.1) +
   scale_color_continuous(low = "blue", high = "yellow")
+
+map
 
 #Dichtekarte mit Flächen
 map <- map + 
@@ -78,8 +79,8 @@ map
 #Small Multiples nach Kategorie cat
 map <- map + 
   stat_density2d(data = crimes2016, aes(lng, lat, fill = ..level..), alpha = 0.1, bins = 50, geom = 'polygon', contour = TRUE) +
-  scale_fill_gradient(low = 'lightpink', high = 'red') + facet_wrap(~cat, nrow = 4, ncol = 4); map
-
+  scale_fill_gradient(low = '#fff7fb', high = '#023858') + facet_wrap(~cat, nrow = 3, ncol = 3); map
+ggsave("plot.png", width = 20, height = 20)
 
 #Dichtekarte mit Iso-Lininen
 map <- map + geom_density2d(data = crimes2016.small, aes(lng, lat, color = ..level..), bins = 30) +
@@ -92,29 +93,49 @@ map <- map + geom_point(data = crimes2016.small, aes(lng, lat, colour=Crm.Cd), s
 
 map
 
-ggsave("plot.png", width = 20, height = 20)
+
 map <- map + geom_point(data = crimes2016.small, aes(lng, lat, colour=Crm.Cd) , size = 3, alpha = 0.005, stroke = 0)
 
 
-new <- crimes2016.small
-look <- data.frame(old = c(210, 310, 510), new = c(2,3,5))
 
 codes <- crimes2016[!duplicated(crimes2016$Crm.Cd),]
 codes <- data.frame(codes$Crm.Cd, codes$Crm.Cd.Desc, codes$CatNr, codes$CatName)
+codes$codes.CatNr <- replace(codes$codes.CatNr, codes$codes.CatNr == 16, 4)
+write.csv(codes, "codes.csv")
 
 
-
-(substring(crimes2016$DATE.OCC, 1, 10))
 crimes2016$date <- as.Date((substring(crimes2016$DATE.OCC, 1, 10)), format = "%m/%d/%Y")
+
 
 p <- ggplot(crimes2016, aes(x = as.yearmon(date))) +
   geom_histogram(bins = 12, fill = 'blue', color = 'black', show.legend = FALSE) + coord_polar(start=0) + theme_minimal() +
-  scale_x_yearmon(n = 24)
+  scale_x_yearmon(n = 24); p
 
 p <- ggplot(crimes2016, aes(x = as.yearmon(date), y = ..count..)) +
   stat_bin(bins = 12, fill = 'lightblue', color = 'black', show.legend = FALSE) + coord_polar(start=0) + theme_minimal() +
   scale_x_yearmon(n = 15); p
+crimes2016$date
 
+
+crimes2016$hour <- floor(crimes2016$TIME.OCC/100)
+
+
+
+bp <- ggplot(crimes2016, aes(group = hour, x = hour, fill = ..count.. / sapply(PANEL, FUN=function(x) sum(count[PANEL == x])))) + 
+  geom_bar(aes(y = ..count../..count..), width = 1.05) + 
+  coord_polar("x", start=25) + scale_fill_gradient(low = '#f7fbff', high = '#08306b', na.value = '#ffffff') +
+  facet_wrap(~CatName, nrow=3, ncol=5) + theme_minimal(); bp
+
+ggsave("clocks.png", width = 20, height = 20)
+
+                                                              
+bp <- ggplot(crimes2016, aes(x = hour, fill = cat)) + geom_bar(); bp
+bp
+?geom_ribbon
+
++ coord_polar(start=25)+ facet_wrap(~cat, nrow = 10, ncol = 4); bp
++coord_polar("x", start=0)
+?scale_x_time
 
 p <- ggplot(crimes2016, aes(x = date, fill = ..count..)) +
   geom_freqpoly(bins = 50, color = 'blue') + coord_polar(start=0) + theme_minimal() +
@@ -126,14 +147,16 @@ p <- ggplot(crimes2016, aes(x = date, y = ..count..)) +
 
 p
 
-codes$codes.CatNr <- replace(codes$codes.CatNr, codes$codes.CatNr == 16, 4)
-write.csv(codes, "codes.csv")
+
 
 for (i in (1:(length(unique(codes$codes.CatNr))+1))){
 crimes2016$cat <- replace(crimes2016$cat, crimes2016$Crm.Cd %in% (subset.data.frame(codes, codes$codes.CatNr == i))$codes.Crm.Cd, i)
 }
 
-crimes2016$cat.name <- merge(crimes2016, codes, by.x = "cat", by.y = "codes.CatNr", all = TRUE)
+crimes2016$catName <- crimes2016$cat
+codes$codes.CatNr==1
+
+crimes2016.joined <- merge(crimes2016, codes, by.x = "cat", by.y = "codes.CatNr", all.x = TRUE)
 ?ljoin
 
 new
