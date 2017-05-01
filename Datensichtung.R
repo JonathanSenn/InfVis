@@ -123,11 +123,16 @@ crimes2016$hour <- floor(crimes2016$TIME.OCC/100)
 
 bp <- ggplot(crimes2016, aes(group = hour, x = hour, fill = ..count.. / sapply(PANEL, FUN=function(x) sum(count[PANEL == x])))) + 
   geom_bar(aes(y = ..count../..count..), width = 1.05) + 
-  coord_polar("x", start=25) + scale_fill_gradient(low = '#f7fbff', high = '#08306b', na.value = '#ffffff') +
-  facet_wrap(~CatName, nrow=3, ncol=5) + theme_minimal(); bp
-
+  scale_fill_gradient(low = '#f7fbff', high = '#08306b', na.value = '#ffffff') +
+  theme_minimal() + scale_x_continuous(breaks=seq(0, 23, 3)) + 
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  coord_polar("x", start=0) + facet_wrap(~CatName, nrow=3, ncol=5); bp
+?labs
 ggsave("clocks.png", width = 20, height = 20)
 
+?scale_x_continuous
+
+?geom_bar
                                                               
 bp <- ggplot(crimes2016, aes(x = hour, fill = cat)) + geom_bar(); bp
 bp
