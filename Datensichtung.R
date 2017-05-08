@@ -82,10 +82,10 @@ map <- map +
 map
 #Small Multiples nach Kategorie cat
 map <- map + 
-  stat_density2d(data = crimes2016, aes(lng, lat, fill = ..level..), alpha = 0.1, bins = 50, geom = 'polygon', contour = TRUE) +
-  scale_fill_gradient(low = '#fff7fb', high = '#08306b') + facet_wrap(~CatName, nrow = 4, ncol = 4) + theme_minimal(); map
+  stat_density2d(data = crimes.joined, aes(lng, lat, fill = ..level..), alpha = 0.1, bins = 50, geom = 'polygon', contour = TRUE) +
+  scale_fill_gradient(low = '#9ecae1', high = '#08306b') + facet_wrap(~codes.CatName, nrow = 4, ncol = 4) + theme_minimal()
 
-ggsave("maps.pdf", width = 20, height = 20)
+ggsave("mapsnew.pdf", width = 10, height = 10)
 
 
 
@@ -126,34 +126,34 @@ crimes2016$date
 
 crimes$hour <- floor(crimes$Time.Occurred /100)
 
-h <- ggplot(crimes2016, aes(x = CatName)) + geom_histogram(stat = "count", fill = '#08306b') + 
-  scale_y_continuous(name = "Anzahl") + scale_x_discrete(name = "Kategorie")+
+h <- ggplot(crimes.joined, aes(x = codes.CatName)) + geom_histogram(stat = "count", fill = '#08306b') + 
+  scale_y_continuous(name = "Anzahl", labels = comma) + scale_x_discrete(name = "Kategorie")+
               theme_minimal(); h
-ggsave("hist.pdf", width = 20, height = 5)
+ggsave("hist.pdf", width = 12.5, height = 5)
 
-h <- ggplot(crimes2016, aes(x = CatName)) + geom_histogram(stat = "count", fill = '#08306b') + 
+h <- ggplot(crimes.joined, aes(x = codes.CatName)) + geom_histogram(stat = "count", fill = '#08306b') + 
   scale_y_log10(name = "Anzahl", labels = comma) + scale_x_discrete(name = "Kategorie")+
   theme_minimal(); h
-ggsave("hist_log.pdf", width = 20, height = 5)
+ggsave("hist_log.pdf", width = 12.5, height = 5)
 
 ?scale_color_discrete
 
-bp <- ggplot(crimes2016, aes(group = hour, x = hour, fill = ..count.. / sapply(PANEL, FUN=function(x) sum(count[PANEL == x])))) + 
+bp <- ggplot(crimes.joined, aes(group = hour, x = hour, fill = ..count.. / sapply(PANEL, FUN=function(x) sum(count[PANEL == x])))) + 
   geom_bar(aes(y = ..count../..count..), width = 1.05) + 
   scale_fill_gradient(low = '#f7fbff', high = '#08306b', na.value = '#ffffff') +
   theme_minimal() + scale_x_continuous(breaks=seq(0, 23, 3)) + 
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
-  coord_polar("x", start=25) + facet_wrap(~CatName, nrow=4, ncol=4); bp
-?labs
-ggsave("clocks_for_label.pdf", width = 20, height = 20)
+  coord_polar("x", start=0) + facet_wrap(~codes.CatName, nrow=4, ncol=4); bp
+
+
+ggsave("clocks.pdf", width = 12.5, height = 12.5)
 
 ?scale_x_continuous
 
 ?geom_bar
                                                               
 bp <- ggplot(crimes2016, aes(x = hour, fill = cat)) + geom_bar(); bp
-bp
-?geom_ribbon
+
 
 + coord_polar(start=25)+ facet_wrap(~cat, nrow = 10, ncol = 4); bp
 +coord_polar("x", start=0)
@@ -169,7 +169,7 @@ p <- ggplot(crimes2016, aes(x = date, y = ..count..)) +
 
 p
 
-crimes2016$CatName
+test <- ((subset(crimes.joined, crimes.joined$cat > 20)))
 
 treemap <- map.market(id=crimes2016$AREA.NAME, area = crimes2016$cat, 
                       group = crimes2016$CatName, color = crimes2016$cat)
@@ -177,9 +177,9 @@ treemap <- map.market(id=crimes2016$AREA.NAME, area = crimes2016$cat,
 
 unique(crimes2016$Status.Desc)
 
-crimes$cat <- crimes$Crm.Cd.1
+crimes.joined$cat <- crimes.joined$Crm.Cd.1
 for (i in (1:(length(unique(codes$codes.CatNr))+1))){
-crimes$cat <- replace(crimes$cat, crimes$Crm.Cd.1 %in% (subset.data.frame(codes, codes$codes.CatNr == i))$codes.Crm.Cd, i)
+crimes.joined$cat <- replace(crimes.joined$cat, crimes.joined$Crm.Cd.1 %in% (subset.data.frame(codes, codes$codes.CatNr == i))$codes.Crm.Cd, i)
 }
 
 
@@ -189,12 +189,25 @@ crimes.small$catName <- crimes.small$cat
 crimes.small$catName[codes$codes.CatNr]
 ?replace
 codes.un <- aggregate(codes.CatNr ~ codes.CatName, codes, FUN = mean)
+codes.un$codes.CatName <- replace(codes.un$codes.CatName, codes.un$codes.CatName == "public?nuisance", "Public nuisance")
+
+gsub("?", "??", codes.un$codes.CatName)
+
+replace(codes.un$codes.CatName, codes.un$codes.CatName == "public?nuisance", "Public nuisance")
+gsub("?", "??", codes.un$codes.CatName)
+
+apply(crimes[,30:30], 2, function(x) ifelse(x = NA, 999, x))
+
+
+crimes$cat <- ifelse(crimes$cat > 25, 9, crimes$cat)
+
+
+?apply
 
 crimes.joined <- merge(crimes, codes.un, by.x = "cat", by.y = "codes.CatNr", all.x = TRUE)
 
-
-?merge
-?ljoin
+crimes.joined$codes.CatName
+crimes.joined$codes.CatName <- ifelse(is.na(crimes.joined$codes.CatName) = TRUE, "Other", crimes.joined$codes.CatName)
 
 new
 
