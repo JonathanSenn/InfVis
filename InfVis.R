@@ -76,10 +76,24 @@ bp <- ggplot(crimes.reduced, aes(group = hour, x = hour, fill = ..count.. / sapp
 
 ggsave("clocks.pdf", width = 12.5, height = 12.5)
 
+bp_n <- ggplot(crimes.reduced, aes(group = hour, x = hour, fill = ..count.. / sapply(PANEL, FUN=function(x) sum(count[PANEL == x])))) + 
+  geom_bar(aes(y = ..count../..count..), width = 1.05) + 
+  scale_fill_gradient(low = '#f7fbff', high = '#08306b', na.value = '#ffffff') +
+  theme_minimal()  + 
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(), 
+        axis.title.x=element_blank(), 
+        axis.text.x=element_blank(), 
+        axis.ticks.x=element_blank()) +
+  coord_polar("x", start=0) + facet_wrap(~codes.CatName, nrow=4, ncol=4) + theme(); bp_n
+
+ggsave("clocks_noLabel.pdf", width = 12.5, height = 12.5)
+
+
 tab <- table(as.yearmon(crimes$date))
 plot(tab)
 as.yearmon(crimes$date)
-sp <- ggplot(crimes, aes(x = as.yearmon(date), group = codes.CatName, y = codes.CatName, color = codes.CatName)) + stat_summary(fun.y = "stdev") +
-  geom_line() + scale_x_yearmon()
+sp <- ggplot(crimes, aes(x = as.yearmon(date), group = codes.CatName, y = ..count.., color = codes.CatName)) + 
+  geom_line(stat = "count") + scale_x_yearmon()
 sp
 
